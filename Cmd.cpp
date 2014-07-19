@@ -35,7 +35,7 @@
     \file Cmd.c
 
     This implements a simple command line interface for the Arduino so that
-    its possible to execute individual functions within the sketch. 
+    its possible to execute individual functions within the sketch.
 */
 /**************************************************************************/
 #include <avr/pgmspace.h>
@@ -59,6 +59,8 @@ const char cmd_banner[] PROGMEM = "*************** CMD *******************";
 const char cmd_prompt[] PROGMEM = "CMD >> ";
 const char cmd_unrecog[] PROGMEM = "CMD: Command not recognized.";
 
+static Stream* stream;
+
 /**************************************************************************/
 /*!
     Generate the main command prompt
@@ -68,13 +70,13 @@ void cmd_display()
 {
     char buf[50];
 
-    Serial.println();
+    stream->println();
 
     strcpy_P(buf, cmd_banner);
-    Serial.println(buf);
+    stream->println(buf);
 
     strcpy_P(buf, cmd_prompt);
-    Serial.print(buf);
+    stream->print(buf);
 }
 
 /**************************************************************************/
@@ -100,7 +102,7 @@ void cmd_parse(char *cmd)
     {
         argv[++i] = strtok(NULL, " ");
     } while ((i < 30) && (argv[i] != NULL));
-    
+
     // save off the number of arguments for the particular command.
     argc = i;
 
@@ -118,7 +120,7 @@ void cmd_parse(char *cmd)
 
     // command not recognized. print message and re-generate prompt.
     strcpy_P(buf, cmd_unrecog);
-    Serial.println(buf);
+    stream->println(buf);
 
     cmd_display();
 }
@@ -127,12 +129,12 @@ void cmd_parse(char *cmd)
 /*!
     This function processes the individual characters typed into the command
     prompt. It saves them off into the message buffer unless its a "backspace"
-    or "enter" key. 
+    or "enter" key.
 */
 /**************************************************************************/
 void cmd_handler()
 {
-    char c = Serial.read();
+    char c = stream->read();
 
     switch (c)
     {
@@ -140,23 +142,23 @@ void cmd_handler()
         // terminate the msg and reset the msg ptr. then send
         // it to the handler for processing.
         *msg_ptr = '\0';
-        Serial.print("\r\n");
+        stream->print("\r\n");
         cmd_parse((char *)msg);
         msg_ptr = msg;
         break;
-    
+
     case '\b':
-        // backspace 
-        Serial.print(c);
+        // backspace
+        stream->print(c);
         if (msg_ptr > msg)
         {
             msg_ptr--;
         }
         break;
-    
+
     default:
         // normal character entered. add it to the buffer
-        Serial.print(c);
+        stream->print(c);
         *msg_ptr++ = c;
         break;
     }
@@ -170,7 +172,7 @@ void cmd_handler()
 /**************************************************************************/
 void cmdPoll()
 {
-    while (Serial.available())
+    while (stream->available())
     {
         cmd_handler();
     }
@@ -179,25 +181,24 @@ void cmdPoll()
 /**************************************************************************/
 /*!
     Initialize the command line interface. This sets the terminal speed and
-    and initializes things. 
+    and initializes things.
 */
 /**************************************************************************/
-void cmdInit(uint32_t speed)
+void cmdInit(Stream *str)
 {
+    stream = str;
     // init the msg ptr
     msg_ptr = msg;
 
     // init the command table
     cmd_tbl_list = NULL;
 
-    // set the serial speed
-    Serial.begin(speed);
 }
 
 /**************************************************************************/
 /*!
     Add a command to the command table. The commands should be added in
-    at the setup() portion of the sketch. 
+    at the setup() portion of the sketch.
 */
 /**************************************************************************/
 void cmdAdd(char *name, void (*func)(int argc, char **argv))

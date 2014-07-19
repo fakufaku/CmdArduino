@@ -32,7 +32,7 @@
 
 *******************************************************************/
 /*!
-    \file 
+    \file
     \ingroup
 
 
@@ -52,7 +52,7 @@ typedef struct _cmd_t
     struct _cmd_t *next;
 } cmd_t;
 
-void cmdInit(uint32_t speed);
+void cmdInit(Stream *);
 void cmdPoll();
 void cmdAdd(char *name, void (*func)(int argc, char **argv));
 uint32_t cmdStr2Num(char *str, uint8_t base);
