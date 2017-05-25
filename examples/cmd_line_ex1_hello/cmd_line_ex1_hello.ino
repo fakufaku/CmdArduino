@@ -9,7 +9,8 @@ to them.
 void setup()
 {
   // init the command line and set it for a speed of 57600
-  cmdInit(57600);
+  Serial.begin(57600);
+  cmdInit(&Serial);
   
   // add the commands to the command table. These functions must
   // already exist in the sketch. See the functions below. 
@@ -34,5 +35,6 @@ void loop()
 // That's it. 
 void hello(int arg_cnt, char **args)
 {
-  Serial.println("Hello world.");
+  cmdGetStream()->println("Hello world.");
 }
+

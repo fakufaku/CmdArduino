@@ -148,6 +148,11 @@ void cmd_handler()
         msg_ptr = msg;
         break;
 
+    case '\n':
+        // ignore newline characters. they usually come in pairs
+        // with the \r characters we use for newline detection.
+        break;
+
     case '\b':
         // backspace
         stream->print(c);
@@ -221,6 +226,18 @@ void cmdAdd(const char *name, void (*func)(int argc, char **argv))
     cmd_tbl->func = func;
     cmd_tbl->next = cmd_tbl_list;
     cmd_tbl_list = cmd_tbl;
+}
+
+/**************************************************************************/
+/*!
+    Get a pointer to the stream used by the interpreter. This allows
+    commands to use the same communication channel as the interpreter
+    without tracking it in the main program.
+*/
+/**************************************************************************/
+Stream* cmdGetStream(void)
+{
+    return stream;
 }
 
 /**************************************************************************/

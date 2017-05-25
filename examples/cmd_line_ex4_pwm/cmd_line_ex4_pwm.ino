@@ -10,11 +10,12 @@ int pwm_pin = 10;
 
 void setup()
 {
-  // set the led pin as an output. its part of the demo.
+  // set the PWM pin as an output. its part of the demo.
   pinMode(pwm_pin, OUTPUT); 
   
   // init the command line and set it for a speed of 57600
-  cmdInit(57600);
+  Serial.begin(57600);
+  cmdInit(&Serial);
   
   // add the commands to the command table. These functions must
   // already exist in the sketch. See the functions below. 
