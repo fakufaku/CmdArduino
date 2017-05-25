@@ -202,7 +202,7 @@ void cmdInit(Stream *str)
     at the setup() portion of the sketch.
 */
 /**************************************************************************/
-void cmdAdd(char *name, void (*func)(int argc, char **argv))
+void cmdAdd(const char *name, void (*func)(int argc, char **argv))
 {
     // alloc memory for command struct
     cmd_tbl = (cmd_t *)malloc(sizeof(cmd_t));
