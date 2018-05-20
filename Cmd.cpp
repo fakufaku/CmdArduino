@@ -35,7 +35,7 @@
     \file Cmd.c
 
     This implements a simple command line interface for the Arduino so that
-    its possible to execute individual functions within the sketch. 
+    its possible to execute individual functions within the sketch.
 */
 /**************************************************************************/
 #include <avr/pgmspace.h>
@@ -59,6 +59,8 @@ const char cmd_banner[] PROGMEM = "*************** CMD *******************";
 const char cmd_prompt[] PROGMEM = "CMD >> ";
 const char cmd_unrecog[] PROGMEM = "CMD: Command not recognized.";
 
+static Stream* stream;
+
 /**************************************************************************/
 /*!
     Generate the main command prompt
@@ -68,13 +70,13 @@ void cmd_display()
 {
     char buf[50];
 
-    Serial.println();
+    stream->println();
 
-    strcpy_P(buf, cmd_banner);
-    Serial.println(buf);
+    //strcpy_P(buf, cmd_banner);
+    //stream->println(buf);
 
     strcpy_P(buf, cmd_prompt);
-    Serial.print(buf);
+    stream->print(buf);
 }
 
 /**************************************************************************/
@@ -100,7 +102,7 @@ void cmd_parse(char *cmd)
     {
         argv[++i] = strtok(NULL, " ");
     } while ((i < 30) && (argv[i] != NULL));
-    
+
     // save off the number of arguments for the particular command.
     argc = i;
 
@@ -118,7 +120,7 @@ void cmd_parse(char *cmd)
 
     // command not recognized. print message and re-generate prompt.
     strcpy_P(buf, cmd_unrecog);
-    Serial.println(buf);
+    stream->println(buf);
 
     cmd_display();
 }
@@ -127,36 +129,42 @@ void cmd_parse(char *cmd)
 /*!
     This function processes the individual characters typed into the command
     prompt. It saves them off into the message buffer unless its a "backspace"
-    or "enter" key. 
+    or "enter" key.
 */
 /**************************************************************************/
 void cmd_handler()
 {
-    char c = Serial.read();
+    char c = stream->read();
 
     switch (c)
     {
+    case '.':
     case '\r':
         // terminate the msg and reset the msg ptr. then send
         // it to the handler for processing.
         *msg_ptr = '\0';
-        Serial.print("\r\n");
+        stream->print("\r\n");
         cmd_parse((char *)msg);
         msg_ptr = msg;
         break;
-    
+
+    case '\n':
+        // ignore newline characters. they usually come in pairs
+        // with the \r characters we use for newline detection.
+        break;
+
     case '\b':
-        // backspace 
-        Serial.print(c);
+        // backspace
+        stream->print(c);
         if (msg_ptr > msg)
         {
             msg_ptr--;
         }
         break;
-    
+
     default:
         // normal character entered. add it to the buffer
-        Serial.print(c);
+        stream->print(c);
         *msg_ptr++ = c;
         break;
     }
@@ -170,7 +178,7 @@ void cmd_handler()
 /**************************************************************************/
 void cmdPoll()
 {
-    while (Serial.available())
+    while (stream->available())
     {
         cmd_handler();
     }
@@ -179,46 +187,81 @@ void cmdPoll()
 /**************************************************************************/
 /*!
     Initialize the command line interface. This sets the terminal speed and
-    and initializes things. 
+    and initializes things.
 */
 /**************************************************************************/
-void cmdInit(uint32_t speed)
+void cmdInit(Stream *str)
 {
+    stream = str;
     // init the msg ptr
     msg_ptr = msg;
 
     // init the command table
     cmd_tbl_list = NULL;
 
-    // set the serial speed
-    Serial.begin(speed);
 }
 
 /**************************************************************************/
 /*!
     Add a command to the command table. The commands should be added in
-    at the setup() portion of the sketch. 
+    at the setup() portion of the sketch.
 */
 /**************************************************************************/
-void cmdAdd(char *name, void (*func)(int argc, char **argv))
+void cmdAdd(const char *name, char *desc, void (*func)(int argc, char **argv))
 {
     // alloc memory for command struct
     cmd_tbl = (cmd_t *)malloc(sizeof(cmd_t));
 
     // alloc memory for command name
     char *cmd_name = (char *)malloc(strlen(name)+1);
-
     // copy command name
     strcpy(cmd_name, name);
-
     // terminate the command name
-    cmd_name[strlen(name)] = '\0';
+    cmd_name[strlen(name)] = '\0';    
+    // Alloc mem for description
+    char *cmd_desc = (char *)malloc(strlen(desc)+1);
+	strcpy(cmd_desc, desc);
+	cmd_desc[strlen(desc)] = '\0';
+
 
     // fill out structure
     cmd_tbl->cmd = cmd_name;
+    cmd_tbl->desc = cmd_desc;
     cmd_tbl->func = func;
     cmd_tbl->next = cmd_tbl_list;
     cmd_tbl_list = cmd_tbl;
+}
+
+/**************************************************************************/
+/*!
+	Dump Function Table List
+	Useful for HELP commands
+*/
+/**************************************************************************/
+void cmdDump()
+{
+    uint8_t argc, i = 0;
+    char *argv[30];
+    char buf[50];
+    cmd_t *cmd_entry;
+
+	for (cmd_entry = cmd_tbl; cmd_entry != NULL; cmd_entry = cmd_entry->next)
+    {
+        stream->print(cmd_entry->cmd);
+		stream->print(" - ");
+		stream->println(cmd_entry->desc);
+    }
+}
+/**************************************************************************/
+/*!
+    Get a pointer to the stream used by the interpreter. This allows
+    commands to use the same communication channel as the interpreter
+    without tracking it in the main program.
+*/
+/**************************************************************************/
+Stream* cmdGetStream(void)
+{
+    return stream;
 }
 
 /**************************************************************************/
