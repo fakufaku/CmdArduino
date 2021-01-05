@@ -43,6 +43,7 @@
 
 #define MAX_MSG_SIZE    60
 #include <stdint.h>
+#include <Arduino.h>
 
 // command line structure
 typedef struct _cmd_t
